@@ -1,0 +1,230 @@
+import type { Contract } from "@/lib/types";
+import { formatDate, formatMoney } from "@/lib/format";
+
+export interface ContractClause {
+  heading: string;
+  paragraphs: string[];
+  bullets?: string[];
+}
+
+export function buildContractClauses(c: Contract): ContractClause[] {
+  const clauses: ContractClause[] = [];
+
+  clauses.push({
+    heading: "1. PARTIES & PROGRAM DETAILS",
+    paragraphs: [
+      `This SAT Tutoring Services Agreement ("Agreement") is entered into as of ${formatDate(
+        c.agreement_date
+      )} by and between StudyCore LLC, a California limited liability company ("StudyCore"), and ${c.parent_name} ("Client").`,
+      `Client represents that they are the parent or legal guardian of the Student named below and is signing this Agreement on the Student's behalf. Client accepts full legal responsibility for all obligations under this Agreement.`,
+      `Student Name: ${c.student_name}`,
+      `Baseline SAT Score (Diagnostic): ${c.current_score}`,
+      `Target SAT Score: ${c.target_score}`,
+      `Parent Email: ${c.parent_email}`,
+      `Parent Phone: ${c.parent_phone}`,
+    ],
+  });
+
+  clauses.push({
+    heading: "2. PROGRAM SCOPE & SCHEDULE",
+    paragraphs: [
+      `Program Duration: ${c.program_duration}`,
+      `Sessions Per Week: ${c.sessions_per_week}`,
+      `Session Length: ${c.session_length} hour${c.session_length === 1 ? "" : "s"}`,
+      `Total Program Hours: ${c.total_hours}`,
+      `Program Start Date: ${formatDate(c.start_date)}`,
+      `Estimated End Date: ${formatDate(c.end_date)}`,
+      `Target SAT Test Date: ${formatDate(c.test_date)}`,
+      `StudyCore will match the student with a vetted tutor (SAT score 1550+) based on learning style and diagnostic results after program commencement. The baseline SAT score used for guarantee purposes is the diagnostic score recorded above, taken on the StudyCore platform prior to program start.`,
+    ],
+  });
+
+  clauses.push({
+    heading: "3. SERVICES INCLUDED",
+    paragraphs: [],
+    bullets: [
+      "1-on-1 tutoring sessions with a matched, vetted tutor (SAT score 1550+)",
+      "Full-length, proctored practice tests throughout the program",
+      "Proprietary study materials, strategy guides, and drill sets via the StudyCore platform",
+      "AI-powered performance analytics after each practice test",
+      "Regular parent progress updates on session attendance, test scores, and improvement",
+      "Access to the StudyCore student platform for scheduling, resources, and communication",
+      "Sessions are recorded via Fathom for quality assurance and student progress review. Recordings are confidential and accessible only to the student, parent, and StudyCore team.",
+    ],
+  });
+
+  const paymentParagraphs: string[] = [
+    `Total Program Investment: ${formatMoney(c.total_price)}`,
+    `Payment Structure: ${c.payment_structure}`,
+  ];
+  if (c.payment_structure === "50% Upfront + Financed Balance") {
+    paymentParagraphs.push(
+      `Upfront Payment: ${formatMoney(c.upfront_amount)} | Remaining Balance: ${formatMoney(
+        c.remaining_balance
+      )}`
+    );
+  }
+  if (c.payment_structure === "Full Financing via Stripe" && c.financing_details) {
+    paymentParagraphs.push(`Financing Plan: ${c.financing_details}`);
+  }
+  paymentParagraphs.push(`Amount Due at Signing: ${formatMoney(c.amount_due_at_signing)}`);
+  paymentParagraphs.push(
+    `All payments are processed securely via Stripe. Client authorizes StudyCore LLC to charge the payment method provided per the schedule above.`
+  );
+  paymentParagraphs.push(
+    `Late Payments: If a scheduled payment fails, Client has a 5-day grace period to resolve the issue. If payment is not received within 5 days, sessions will be automatically paused until the outstanding balance is cleared. If payment remains unresolved after 14 days, the account will be considered delinquent and sessions suspended until resolved. Guarantee eligibility is unaffected provided payment is made within the grace period.`
+  );
+  paymentParagraphs.push(
+    `NO CHARGEBACKS: Client agrees not to initiate a chargeback, payment dispute, or reversal with their financial institution or payment provider except in cases where StudyCore LLC has failed to deliver services as outlined in this Agreement, or where both parties have agreed to a refund in writing. If StudyCore LLC fails to deliver the services described herein, this Agreement is void and Client is entitled to a full refund. Any unauthorized chargebacks will be formally contested by StudyCore LLC using this signed Agreement as evidence.`
+  );
+
+  clauses.push({
+    heading: "4. PAYMENT TERMS",
+    paragraphs: paymentParagraphs,
+  });
+
+  const cancellationParagraphs: string[] = [];
+  if (c.trial_window) {
+    cancellationParagraphs.push(
+      `3-Session Trial Window: Client may cancel this Agreement for any reason within the first three (3) completed tutoring sessions and receive a full refund of all amounts paid. To initiate, Client must notify StudyCore LLC in writing at support@studycore.net. Refunds processed within 5-7 business days.`
+    );
+  }
+  cancellationParagraphs.push(
+    `Mid-Program Cancellation: Client may cancel at any time by providing written notice to support@studycore.net. Upon cancellation, Client will be refunded for all unused, prepaid session hours at the per-hour rate implied by the total program investment. Sessions already completed are non-refundable. Future financing installments will be cancelled upon confirmed cancellation.`
+  );
+  cancellationParagraphs.push(
+    `Program Pause: Client may pause the program up to two (2) times per program, for a maximum of two (2) weeks per pause, with at least 48 hours written notice. The program end date and guarantee clock will extend by the duration of the pause. Pauses exceeding the limit will not extend the program timeline.`
+  );
+
+  clauses.push({
+    heading: "5. CANCELLATION & REFUND POLICY",
+    paragraphs: cancellationParagraphs,
+  });
+
+  if (c.guarantee_type === "Score Improvement Guarantee") {
+    clauses.push({
+      heading: "6. PERFORMANCE GUARANTEE",
+      paragraphs: [
+        `Score Improvement Guarantee: In the event the student does not achieve a score improvement above their diagnostic baseline score on their first official SAT after program completion, StudyCore LLC will provide up to eight (8) complimentary tutoring sessions at no additional cost, to be completed before the next available SAT test date.`,
+        `This guarantee is contingent upon all of the following conditions being met:`,
+      ],
+      bullets: [
+        "Student attended at least 90% of scheduled sessions",
+        "Student completed 100% of assigned homework, practice tests, and drill sets",
+        "Tutor session logs document consistent student engagement throughout the program. If a student is marked as unengaged for more than 2 consecutive sessions, StudyCore will notify the parent in writing. Continued disengagement may result in revocation of guarantee eligibility at StudyCore's discretion with written notice.",
+        "Student took their first official SAT within 60 days of program completion",
+        "Official College Board score report submitted to StudyCore within 14 days of receiving results",
+      ],
+    });
+  } else if (c.guarantee_type === "Full Refund Guarantee") {
+    clauses.push({
+      heading: "6. PERFORMANCE GUARANTEE",
+      paragraphs: [
+        `Full Refund Guarantee: In the event the student does not achieve ${c.guaranteed_target_score} on their first official SAT after program completion, Client will receive a full refund of the total program investment.`,
+        `This guarantee is contingent upon all of the following conditions being met:`,
+      ],
+      bullets: [
+        "Student attended at least 90% of scheduled sessions",
+        "Student completed 100% of assigned homework, practice tests, and drill sets",
+        "Tutor session logs document consistent student engagement throughout the program. If a student is marked as unengaged for more than 2 consecutive sessions, StudyCore will notify the parent in writing. Continued disengagement may result in revocation of guarantee eligibility at StudyCore's discretion with written notice.",
+        "Student took their first official SAT within 60 days of program completion",
+        "Official College Board score report submitted to StudyCore within 14 days of receiving results",
+        `The guaranteed target score (${c.guaranteed_target_score}) is based on the diagnostic baseline score recorded at enrollment`,
+      ],
+    });
+    clauses[clauses.length - 1].paragraphs.push(
+      `Force Majeure: If the student is unable to take the SAT within the 60-day window due to College Board test cancellations or other events outside either party's control, the guarantee window will be extended to the next available test date.`
+    );
+  } else {
+    clauses.push({
+      heading: "6. PERFORMANCE GUARANTEE",
+      paragraphs: [
+        `No Performance Guarantee: StudyCore LLC does not offer a performance-based guarantee for this enrollment. StudyCore remains fully committed to delivering the highest quality instruction as described in Section 3.`,
+      ],
+    });
+  }
+
+  clauses.push({
+    heading: "7. CLIENT RESPONSIBILITIES",
+    paragraphs: [`Client and Student agree to:`],
+    bullets: [
+      "Attend all scheduled sessions or provide at least 24 hours notice to reschedule",
+      "Student may reschedule up to a maximum of 2 times per calendar month with at least 24 hours notice. Additional reschedules beyond this limit will result in the session being forfeited and counted as completed for guarantee eligibility purposes.",
+      "Complete 100% of assigned practice tests, drills, and homework between sessions",
+      "Maintain active engagement during all sessions as documented by the assigned tutor",
+      "Communicate promptly with their tutor and the StudyCore team",
+      "Ensure Student has reliable internet and a device for online sessions",
+      "Keep payment method on file current and up to date",
+    ],
+  });
+  clauses[clauses.length - 1].paragraphs.push(
+    `Sessions missed without 24-hour notice may be forfeited at StudyCore's discretion and will count as completed sessions for guarantee eligibility purposes.`
+  );
+
+  clauses.push({
+    heading: "8. NON-SOLICITATION",
+    paragraphs: [
+      `Client agrees not to directly hire, solicit, or engage any StudyCore tutor for private tutoring services outside of StudyCore LLC during the program and for 12 months following the program end date. Violation of this clause will result in a fee equal to 6 months of the tutor's standard StudyCore rate, payable immediately upon demand.`,
+    ],
+  });
+
+  clauses.push({
+    heading: "9. TUTOR ASSIGNMENT & SUBSTITUTION",
+    paragraphs: [
+      `StudyCore LLC reserves the right to reassign a student to a different tutor if the original tutor becomes unavailable. StudyCore will notify Client of any tutor change and ensure continuity of instruction. Client may request a tutor change by contacting support@studycore.net.`,
+    ],
+  });
+
+  clauses.push({
+    heading: "10. SESSION RECORDING & COMMUNICATIONS CONSENT",
+    paragraphs: [
+      `Sessions are recorded via Fathom for quality assurance and student progress review. Recordings are confidential and accessible only to the student, parent, and StudyCore team.`,
+      `Client consents to receiving program-related communications via email and SMS from StudyCore LLC, including session reminders, progress updates, and billing notifications.`,
+      `Client optionally consents to StudyCore LLC using anonymized score improvement results for marketing purposes. This consent is indicated by signing this Agreement and may be revoked in writing at any time.`,
+    ],
+  });
+
+  clauses.push({
+    heading: "11. INTELLECTUAL PROPERTY",
+    paragraphs: [
+      `All materials provided by StudyCore LLC are proprietary intellectual property of StudyCore LLC. Client and Student may use materials solely for personal, non-commercial SAT preparation. Reproduction, distribution, or resale without written consent is prohibited.`,
+    ],
+  });
+
+  clauses.push({
+    heading: "12. CONFIDENTIALITY & DATA",
+    paragraphs: [
+      `StudyCore LLC will keep Client and Student information confidential and will not sell or share personal data with third parties except as required to deliver services herein.`,
+    ],
+  });
+
+  clauses.push({
+    heading: "13. LIMITATION OF LIABILITY",
+    paragraphs: [
+      `StudyCore LLC's total liability shall not exceed the total amount paid by Client. StudyCore LLC is not liable for indirect, incidental, or consequential damages.`,
+    ],
+  });
+
+  clauses.push({
+    heading: "14. FORCE MAJEURE",
+    paragraphs: [
+      `Neither party shall be held liable for delays or failures in performance resulting from events outside their reasonable control, including but not limited to College Board test cancellations, natural disasters, acts of government, or other force majeure events. In such cases, applicable deadlines, including guarantee windows, will be extended to the next reasonable opportunity.`,
+    ],
+  });
+
+  clauses.push({
+    heading: "15. DISPUTE RESOLUTION",
+    paragraphs: [
+      `Disputes shall first be attempted informally via support@studycore.net. If unresolved within 30 days, disputes shall be resolved by binding arbitration in San Ramon, California under AAA rules. Governed by California law.`,
+    ],
+  });
+
+  clauses.push({
+    heading: "16. ENTIRE AGREEMENT",
+    paragraphs: [
+      `This Agreement supersedes all prior discussions and agreements. Modifications must be in writing signed by both parties. If any provision is found unenforceable, remaining provisions remain in full force.`,
+    ],
+  });
+
+  return clauses;
+}

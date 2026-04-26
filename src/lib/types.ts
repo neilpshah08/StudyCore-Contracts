@@ -1,0 +1,64 @@
+export type UserRole = "admin" | "closer" | "parent";
+
+export type ContractStatus =
+  | "draft"
+  | "sent"
+  | "viewed"
+  | "signed"
+  | "completed";
+
+export type PaymentStructure =
+  | "Full Upfront"
+  | "50% Upfront + Financed Balance"
+  | "Full Financing via Stripe";
+
+export type GuaranteeType =
+  | "Score Improvement Guarantee"
+  | "Full Refund Guarantee"
+  | "No Guarantee";
+
+export interface AppUser {
+  id: string;
+  email: string;
+  name: string;
+  role: UserRole;
+  active: boolean;
+  created_at: string;
+}
+
+export interface Contract {
+  id: string;
+  closer_id: string;
+  parent_name: string;
+  parent_email: string;
+  parent_phone: string;
+  student_name: string;
+  current_score: number;
+  target_score: number;
+  program_duration: string;
+  sessions_per_week: number;
+  session_length: number;
+  total_hours: number;
+  start_date: string;
+  end_date: string;
+  test_date: string;
+  total_price: number;
+  payment_structure: PaymentStructure;
+  upfront_amount: number | null;
+  remaining_balance: number | null;
+  financing_details: string | null;
+  amount_due_at_signing: number;
+  guarantee_type: GuaranteeType;
+  guaranteed_target_score: number | null;
+  trial_window: boolean;
+  status: ContractStatus;
+  signed_at: string | null;
+  paid_at: string | null;
+  stripe_payment_intent_id: string | null;
+  pdf_url: string | null;
+  signing_token: string;
+  created_at: string;
+  agreement_date: string;
+  closer_name?: string;
+  signature_data?: string | null;
+}
