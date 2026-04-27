@@ -83,6 +83,28 @@ create index if not exists contracts_signing_token_idx on public.contracts(signi
 alter table public.users enable row level security;
 alter table public.contracts enable row level security;
 
+-- Helper: is the calling user an active admin?
+-- SECURITY DEFINER so it can read public.users WITHOUT re-triggering RLS,
+-- which would otherwise cause infinite recursion when used inside a policy
+-- on the same table.
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.users
+    where id = auth.uid()
+      and role = 'admin'
+      and active = true
+  );
+$$;
+
+revoke all on function public.is_admin() from public;
+grant execute on function public.is_admin() to authenticated;
+
 -- USERS policies
 -- Anyone authenticated can read their own user row
 drop policy if exists "users_self_read" on public.users;
@@ -92,23 +114,17 @@ create policy "users_self_read" on public.users
 -- Admins can read all user rows
 drop policy if exists "users_admin_read" on public.users;
 create policy "users_admin_read" on public.users
-  for select using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
-  );
+  for select using (public.is_admin());
 
 -- Admins can update any user row (activate/deactivate, rename)
 drop policy if exists "users_admin_update" on public.users;
 create policy "users_admin_update" on public.users
-  for update using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
-  );
+  for update using (public.is_admin());
 
 -- Admins can insert user rows (in practice we use service role from server)
 drop policy if exists "users_admin_insert" on public.users;
 create policy "users_admin_insert" on public.users
-  for insert with check (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
-  );
+  for insert with check (public.is_admin());
 
 -- CONTRACTS policies
 -- Closers can read contracts they created
@@ -121,22 +137,21 @@ drop policy if exists "contracts_closer_insert" on public.contracts;
 create policy "contracts_closer_insert" on public.contracts
   for insert with check (
     closer_id = auth.uid()
-    and exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'closer' and u.active = true)
+    and exists (
+      select 1 from public.users u
+      where u.id = auth.uid() and u.role = 'closer' and u.active = true
+    )
   );
 
 -- Admins can read all contracts
 drop policy if exists "contracts_admin_read" on public.contracts;
 create policy "contracts_admin_read" on public.contracts
-  for select using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
-  );
+  for select using (public.is_admin());
 
 -- Admins can update contracts
 drop policy if exists "contracts_admin_update" on public.contracts;
 create policy "contracts_admin_update" on public.contracts
-  for update using (
-    exists (select 1 from public.users u where u.id = auth.uid() and u.role = 'admin')
-  );
+  for update using (public.is_admin());
 
 -- Note: parent signing happens server-side via the service role key
 -- (no parent auth, only the signed token in the URL).

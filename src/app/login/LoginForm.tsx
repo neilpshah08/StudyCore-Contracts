@@ -40,14 +40,26 @@ export default function LoginForm({ errorParam }: { errorParam?: string }) {
         setLoading(false);
         return;
       }
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("users")
         .select("role,active")
         .eq("id", user.id)
         .single();
-      if (!profile || !profile.active) {
+      if (profileError) {
         await supabase.auth.signOut();
-        setError("Your account is not active.");
+        setError(`Profile lookup failed: ${profileError.message}`);
+        setLoading(false);
+        return;
+      }
+      if (!profile) {
+        await supabase.auth.signOut();
+        setError("No profile row found for this account.");
+        setLoading(false);
+        return;
+      }
+      if (!profile.active) {
+        await supabase.auth.signOut();
+        setError("Your account is deactivated. Contact your admin.");
         setLoading(false);
         return;
       }
