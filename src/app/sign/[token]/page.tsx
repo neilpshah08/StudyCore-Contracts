@@ -5,13 +5,34 @@ import { buildContractClauses } from "@/lib/contract-text";
 import { formatMoney } from "@/lib/format";
 import type { Contract } from "@/lib/types";
 import SignAndPay from "./SignAndPay";
+import FinalizeAfterRedirect from "./FinalizeAfterRedirect";
 
 export const dynamic = "force-dynamic";
 
+function redirectErrorFor(status: string | undefined): string | null {
+  if (!status || status === "succeeded") return null;
+  if (status === "processing") {
+    return "Your payment is still processing. We'll email you once it confirms — you don't need to do anything else right now.";
+  }
+  if (status === "requires_payment_method" || status === "failed") {
+    return "Payment was not completed. Please try again or use a different payment method.";
+  }
+  if (status === "requires_action" || status === "canceled") {
+    return "Payment was not completed. Please try again.";
+  }
+  return "Payment was not completed. Please try again.";
+}
+
 export default async function SignPage({
   params,
+  searchParams,
 }: {
   params: { token: string };
+  searchParams: {
+    payment_intent?: string;
+    payment_intent_client_secret?: string;
+    redirect_status?: string;
+  };
 }) {
   const admin = createAdminClient();
   const { data: contract } = await admin
@@ -34,9 +55,42 @@ export default async function SignPage({
   const isComplete = contract.status === "completed" || contract.status === "signed";
   const dueAtSigningCents = Math.round(Number(contract.amount_due_at_signing) * 100);
 
-  // Set up Stripe payment intent if we have an amount due and not yet paid
+  // The parent has just been redirected back to us from a Stripe redirect-based
+  // payment method (Klarna, Affirm, etc.). The query params tell us how it
+  // went. We re-verify the payment status server-side before honoring it.
+  const returnedFromRedirect = !!searchParams.payment_intent && !!searchParams.redirect_status;
+  let verifiedRedirectSucceeded = false;
+  let redirectError: string | null = null;
+
+  if (returnedFromRedirect && !isComplete) {
+    if (searchParams.redirect_status === "succeeded") {
+      try {
+        const stripe = getStripe();
+        const pi = await stripe.paymentIntents.retrieve(searchParams.payment_intent!);
+        if (
+          pi.status === "succeeded" &&
+          pi.metadata?.contract_id === contract.id
+        ) {
+          verifiedRedirectSucceeded = true;
+        } else {
+          redirectError =
+            "Payment did not confirm. Please try again or use a different payment method.";
+        }
+      } catch {
+        redirectError =
+          "We couldn't verify your payment. Please try again or contact support@studycore.net.";
+      }
+    } else {
+      redirectError = redirectErrorFor(searchParams.redirect_status);
+    }
+  }
+
+  // Set up Stripe payment intent if we have an amount due and not yet paid.
+  // Skip when we already verified a successful redirect — we're about to
+  // render the finalizing UI and would otherwise create a stray fresh PI
+  // (since the existing PI is already in a `succeeded` state).
   let clientSecret: string | null = null;
-  if (!isComplete && dueAtSigningCents > 0) {
+  if (!isComplete && !verifiedRedirectSucceeded && dueAtSigningCents > 0) {
     const stripe = getStripe();
     if (contract.stripe_payment_intent_id) {
       try {
@@ -122,6 +176,20 @@ export default async function SignPage({
     );
   }
 
+  // Successful redirect-method payment: render a "Finalizing..." UI that
+  // POSTs the saved signature to /api/sign and then router.replace to
+  // /welcome. The replace navigation strips Stripe's redirect query params
+  // from the address bar.
+  if (verifiedRedirectSucceeded) {
+    return (
+      <main className="min-h-screen bg-slate-50">
+        <div className="mx-auto max-w-md px-5 py-20">
+          <FinalizeAfterRedirect token={contract.signing_token} />
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
@@ -200,6 +268,7 @@ export default async function SignPage({
           amountDueCents={dueAtSigningCents}
           stripePublishableKey={process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!}
           stripeClientSecret={clientSecret}
+          initialError={redirectError}
         />
       </div>
     </main>

@@ -13,7 +13,10 @@ interface Props {
   amountDueCents: number;
   stripePublishableKey: string;
   stripeClientSecret: string | null;
+  initialError?: string | null;
 }
+
+export const SIGNATURE_STORAGE_KEY = (token: string) => `studycore.sig.${token}`;
 
 export default function SignAndPay(props: Props) {
   const stripePromise = useMemo<Promise<Stripe | null> | null>(() => {
@@ -54,10 +57,32 @@ function InnerForm(props: Props) {
   const [hasSigned, setHasSigned] = useState(false);
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(props.initialError ?? null);
 
   useEffect(() => {
     setMounted(true);
+    // If we returned here from a Stripe redirect with a non-success status, the
+    // server passed us an error message. Strip the Stripe query params from the
+    // URL so the address bar is clean and a refresh doesn't re-show the banner.
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      const stripeParams = [
+        "payment_intent",
+        "payment_intent_client_secret",
+        "redirect_status",
+        "source_redirect_slug",
+      ];
+      let dirty = false;
+      for (const p of stripeParams) {
+        if (url.searchParams.has(p)) {
+          url.searchParams.delete(p);
+          dirty = true;
+        }
+      }
+      if (dirty) {
+        window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+      }
+    }
   }, []);
 
   // Resize signature canvas to its parent (avoid blurry strokes on mobile)
@@ -103,8 +128,14 @@ function InnerForm(props: Props) {
 
     setSubmitting(true);
 
+    // Capture the signature data URL once now — for redirect-based payment
+    // methods (Klarna, Affirm, etc.) the page will fully reload before we get
+    // back here, so we stash it in sessionStorage to survive the round-trip.
+    const signatureDataUrl = sigRef.current
+      .getTrimmedCanvas()
+      .toDataURL("image/png");
+
     try {
-      // 1. Confirm payment if there is an amount due
       if (props.amountDueCents > 0) {
         if (!stripe || !elements) {
           throw new Error("Payment is still loading. Please wait a moment and try again.");
@@ -112,23 +143,30 @@ function InnerForm(props: Props) {
         const { error: submitError } = await elements.submit();
         if (submitError) throw submitError;
 
+        // Save signature before triggering payment confirmation. Redirect
+        // methods will navigate the browser away and come back to return_url.
+        try {
+          sessionStorage.setItem(SIGNATURE_STORAGE_KEY(props.token), signatureDataUrl);
+        } catch {
+          // sessionStorage can be unavailable in privacy modes; we'll just
+          // fall back to the inline-confirm path below for non-redirect methods.
+        }
+
+        const returnUrl = `${window.location.origin}/sign/${props.token}`;
         const { error: payError, paymentIntent } = await stripe.confirmPayment({
           elements,
           redirect: "if_required",
-          confirmParams: {
-            return_url: `${window.location.origin}/welcome`,
-          },
+          confirmParams: { return_url: returnUrl },
         });
+        // If we get here, no redirect happened (typically a card payment).
         if (payError) throw payError;
         if (!paymentIntent || paymentIntent.status !== "succeeded") {
-          throw new Error("Payment did not complete. Please try again.");
+          throw new Error("Payment was not completed. Please try again.");
         }
       }
 
-      // 2. Submit signature to server, which renders & stores the PDF and sends emails
-      const signatureDataUrl = sigRef.current
-        .getTrimmedCanvas()
-        .toDataURL("image/png");
+      // Submit signature to server, which verifies the PaymentIntent again,
+      // renders & stores the PDF, and sends confirmation emails.
       const res = await fetch("/api/sign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -140,9 +178,16 @@ function InnerForm(props: Props) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not finalize signing.");
 
-      router.push("/welcome");
+      try {
+        sessionStorage.removeItem(SIGNATURE_STORAGE_KEY(props.token));
+      } catch {}
+
+      router.replace("/welcome");
     } catch (err: any) {
-      setError(err?.message ?? "Something went wrong.");
+      try {
+        sessionStorage.removeItem(SIGNATURE_STORAGE_KEY(props.token));
+      } catch {}
+      setError(err?.message ?? "Payment was not completed. Please try again.");
       setSubmitting(false);
     }
   }
