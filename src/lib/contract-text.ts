@@ -71,9 +71,13 @@ export function buildContractClauses(c: Contract): ContractClause[] {
   paymentParagraphs.push(
     `All payments are processed securely via Stripe. Client authorizes StudyCore LLC to charge the payment method provided per the schedule above.`
   );
-  paymentParagraphs.push(
-    `Late Payments: If a scheduled payment fails, Client has a 5-day grace period to resolve the issue. If payment is not received within 5 days, sessions will be automatically paused until the outstanding balance is cleared. If payment remains unresolved after 14 days, the account will be considered delinquent and sessions suspended until resolved. Guarantee eligibility is unaffected provided payment is made within the grace period.`
-  );
+  // Late-payments clause only applies when there are future scheduled
+  // payments (50/50 financed balance or full financing).
+  if (c.payment_structure !== "Full Upfront") {
+    paymentParagraphs.push(
+      `Late Payments: If a scheduled payment fails, Client has a 5-day grace period to resolve the issue. If payment is not received within 5 days, sessions will be automatically paused until the outstanding balance is cleared. If payment remains unresolved after 14 days, the account will be considered delinquent and sessions suspended until resolved. Guarantee eligibility is unaffected provided payment is made within the grace period.`
+    );
+  }
   paymentParagraphs.push(
     `NO CHARGEBACKS: Client agrees not to initiate a chargeback, payment dispute, or reversal with their financial institution or payment provider except in cases where StudyCore LLC has failed to deliver services as outlined in this Agreement, or where both parties have agreed to a refund in writing. If StudyCore LLC fails to deliver the services described herein, this Agreement is void and Client is entitled to a full refund. Any unauthorized chargebacks will be formally contested by StudyCore LLC using this signed Agreement as evidence.`
   );
@@ -89,9 +93,15 @@ export function buildContractClauses(c: Contract): ContractClause[] {
       `3-Session Trial Window: Client may cancel this Agreement for any reason within the first three (3) completed tutoring sessions and receive a full refund of all amounts paid. To initiate, Client must notify StudyCore LLC in writing at support@studycore.net. Refunds processed within 5-7 business days.`
     );
   }
-  cancellationParagraphs.push(
-    `Mid-Program Cancellation: Client may cancel at any time by providing written notice to support@studycore.net. Upon cancellation, Client will be refunded for all unused, prepaid session hours at the per-hour rate implied by the total program investment. Sessions already completed are non-refundable. Future financing installments will be cancelled upon confirmed cancellation.`
-  );
+  if (c.show_cancellation_refund_terms) {
+    const totalHoursNum = Number(c.total_hours);
+    const perHourRate =
+      totalHoursNum > 0 ? Number(c.total_price) / totalHoursNum : 0;
+    const rateLabel = `${formatMoney(perHourRate)} per hour (Total Program Investment / Total Program Hours)`;
+    cancellationParagraphs.push(
+      `Mid-Program Cancellation: Client may cancel at any time by providing written notice to support@studycore.net. Upon cancellation, Client will be refunded for all unused, prepaid session hours at the per-hour rate implied by the total program investment. Sessions already completed are non-refundable, calculated at ${rateLabel}. Future financing installments will be cancelled upon confirmed cancellation.`
+    );
+  }
   cancellationParagraphs.push(
     `Program Pause: Client may pause the program up to two (2) times per program, for a maximum of two (2) weeks per pause, with at least 48 hours written notice. The program end date and guarantee clock will extend by the duration of the pause. Pauses exceeding the limit will not extend the program timeline.`
   );

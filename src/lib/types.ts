@@ -51,6 +51,7 @@ export interface Contract {
   guarantee_type: GuaranteeType;
   guaranteed_target_score: number | null;
   trial_window: boolean;
+  show_cancellation_refund_terms: boolean;
   status: ContractStatus;
   signed_at: string | null;
   paid_at: string | null;

@@ -51,6 +51,8 @@ export default function NewContractForm({ closerName }: { closerName: string }) 
 
   // Section 5
   const [trialWindow, setTrialWindow] = useState<"Yes" | "No">("Yes");
+  const [showCancellationRefundTerms, setShowCancellationRefundTerms] =
+    useState<"Yes" | "No">("Yes");
 
   const weeksMatch = programDuration.match(/([\d.]+)/);
   const weeks = weeksMatch ? Number(weeksMatch[1]) : 0;
@@ -136,6 +138,7 @@ export default function NewContractForm({ closerName }: { closerName: string }) 
       guaranteed_target_score:
         guaranteeType === "Full Refund Guarantee" ? Number(guaranteedTargetScore) : null,
       trial_window: trialWindow === "Yes",
+      show_cancellation_refund_terms: showCancellationRefundTerms === "Yes",
     };
 
     const res = await fetch("/api/contracts", {
@@ -390,6 +393,26 @@ export default function NewContractForm({ closerName }: { closerName: string }) 
             className="input"
             value={trialWindow}
             onChange={(e) => setTrialWindow(e.target.value as "Yes" | "No")}
+          >
+            <option>Yes</option>
+            <option>No</option>
+          </select>
+        </Field>
+        <Field
+          label={
+            showCancellationRefundTerms === "Yes" && totalPrice !== "" && totalHours > 0
+              ? `Show Cancellation Refund Terms (rate: $${(
+                  Number(totalPrice) / totalHours
+                ).toFixed(2)} / hr)`
+              : "Show Cancellation Refund Terms"
+          }
+        >
+          <select
+            className="input"
+            value={showCancellationRefundTerms}
+            onChange={(e) =>
+              setShowCancellationRefundTerms(e.target.value as "Yes" | "No")
+            }
           >
             <option>Yes</option>
             <option>No</option>

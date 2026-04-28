@@ -87,6 +87,10 @@ export default function ContractDetail({
             />
           )}
           <Row label="3-session trial window" value={contract.trial_window ? "Yes" : "No"} />
+          <Row
+            label="Cancellation refund terms"
+            value={contract.show_cancellation_refund_terms ? "Yes" : "No"}
+          />
         </Section>
 
         <Section title="Lifecycle">

@@ -62,6 +62,7 @@ create table if not exists public.contracts (
 
   -- Section 5 — Cancellation
   trial_window boolean not null default false,
+  show_cancellation_refund_terms boolean not null default true,
 
   -- Lifecycle
   status text not null default 'draft' check (status in ('draft','sent','viewed','signed','completed')),
