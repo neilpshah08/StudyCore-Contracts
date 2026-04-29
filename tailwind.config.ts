@@ -14,6 +14,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
+        serif: ['"Source Serif 4"', "Charter", "Cambria", "Georgia", "serif"],
       },
     },
   },

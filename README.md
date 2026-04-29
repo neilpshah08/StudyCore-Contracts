@@ -186,6 +186,26 @@ That's it — `sign.studycore.net` is live.
 
 ---
 
+## Brand logo
+
+The signing page (and other surfaces that import `@/components/StudyCoreLogo`)
+load the brand mark from one of two sources, in priority order:
+
+1. `NEXT_PUBLIC_LOGO_URL` env var, if set — useful for pointing at a hosted
+   asset on `studycore.net` or a CDN without redeploying just to swap the file.
+2. Otherwise, `/studycore-logo.svg` from the `public/` folder.
+
+To install the real StudyCore logo, replace `public/studycore-logo.svg` with
+the actual SVG (or PNG — just rename and update the import in
+`src/components/StudyCoreLogo.tsx` if extension changes). Or, simply set:
+
+```
+NEXT_PUBLIC_LOGO_URL=https://studycore.net/path/to/logo.svg
+```
+
+in your Vercel project's environment variables and redeploy. The placeholder
+included in the repo is a clean wordmark in StudyCore navy/orange.
+
 ## Editing the contract text
 
 All clauses live in [`src/lib/contract-text.ts`](./src/lib/contract-text.ts) as

@@ -2,8 +2,9 @@ import { notFound } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe";
 import { buildContractClauses } from "@/lib/contract-text";
-import { formatMoney } from "@/lib/format";
+import { formatDate, formatMoney } from "@/lib/format";
 import type { Contract } from "@/lib/types";
+import StudyCoreLogo from "@/components/StudyCoreLogo";
 import SignAndPay from "./SignAndPay";
 import FinalizeAfterRedirect from "./FinalizeAfterRedirect";
 
@@ -154,19 +155,25 @@ export default async function SignPage({
 
   if (isComplete) {
     return (
-      <main className="min-h-screen bg-cream">
-        <div className="mx-auto max-w-2xl px-6 py-20 text-center">
-          <h1 className="text-3xl font-bold text-navy">This contract is already signed.</h1>
-          <p className="mt-3 text-slate-600">
-            You signed and paid for {contract.student_name}'s enrollment. A copy was emailed
-            to you. If you need it again, contact support@studycore.net.
+      <main className="doc-shell">
+        <DocHeader />
+        <div className="mx-auto max-w-2xl px-6 py-24 text-center">
+          <div className="doc-eyebrow-accent">Signed &amp; Confirmed</div>
+          <h1 className="doc-h1 mt-3">This agreement has been countersigned.</h1>
+          <p className="mt-4 font-serif text-[15px] leading-[1.7] text-slate-700">
+            You signed and paid for {contract.student_name}&apos;s enrollment. A copy was
+            emailed to you. If you need it again, contact{" "}
+            <a className="text-navy underline-offset-2 hover:underline" href="mailto:support@studycore.net">
+              support@studycore.net
+            </a>
+            .
           </p>
           {contract.pdf_url && (
             <a
               href={contract.pdf_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-primary mt-6 inline-block"
+              className="doc-btn-secondary mt-8"
             >
               Download signed PDF
             </a>
@@ -182,8 +189,9 @@ export default async function SignPage({
   // from the address bar.
   if (verifiedRedirectSucceeded) {
     return (
-      <main className="min-h-screen bg-slate-50">
-        <div className="mx-auto max-w-md px-5 py-20">
+      <main className="doc-shell">
+        <DocHeader />
+        <div className="mx-auto max-w-lg px-6 py-24">
           <FinalizeAfterRedirect token={contract.signing_token} />
         </div>
       </main>
@@ -191,74 +199,69 @@ export default async function SignPage({
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-navy text-sm font-bold text-white">
-              SC
-            </span>
-            <div>
-              <div className="text-sm font-semibold text-navy">StudyCore LLC</div>
-              <div className="text-xs text-slate-500">SAT Tutoring Agreement</div>
-            </div>
-          </div>
-          <a
-            href="https://studycore.net"
-            className="hidden text-xs font-medium text-slate-500 hover:text-navy md:inline"
-          >
-            studycore.net
-          </a>
-        </div>
-      </header>
+    <main className="doc-shell">
+      <DocHeader />
 
-      <div className="mx-auto max-w-3xl px-5 py-8">
-        <div className="card mb-6 p-5">
-          <div className="text-xs uppercase tracking-wider text-slate-500">For</div>
-          <div className="mt-1 text-2xl font-bold text-navy">{contract.student_name}</div>
-          <div className="text-sm text-slate-500">Parent / Guardian: {contract.parent_name}</div>
-          <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-            <div>
-              <div className="text-xs uppercase tracking-wider text-slate-500">Total program</div>
-              <div className="font-semibold text-slate-800">{formatMoney(contract.total_price)}</div>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-wider text-slate-500">Due at signing</div>
-              <div className="font-semibold text-orange">
-                {formatMoney(contract.amount_due_at_signing)}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs uppercase tracking-wider text-slate-500">Structure</div>
-              <div className="font-semibold text-slate-800">{contract.payment_structure}</div>
+      <div className="mx-auto max-w-3xl px-5 py-10 sm:py-14">
+        {/* Document identifier strip */}
+        <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="doc-eyebrow-accent">SAT Tutoring Services Agreement</div>
+            <h1 className="doc-h1 mt-2">
+              For {contract.student_name}
+            </h1>
+            <p className="mt-1 font-serif text-[14px] text-slate-600">
+              Issued to {contract.parent_name} &middot; Agreement dated{" "}
+              {formatDate(contract.agreement_date)}
+            </p>
+          </div>
+          <div className="text-left sm:text-right">
+            <div className="doc-meta-label">Reference</div>
+            <div className="mt-1 font-mono text-[12px] text-slate-700">
+              {contract.id.slice(0, 8).toUpperCase()}
             </div>
           </div>
         </div>
 
-        <article className="card mb-6 max-h-[60vh] overflow-y-auto p-6 text-sm leading-relaxed text-slate-800">
-          <div className="mb-4 border-b border-slate-200 pb-3">
-            <div className="text-xs uppercase tracking-wider text-orange">StudyCore LLC</div>
-            <h1 className="text-xl font-bold text-navy">SAT Tutoring Services Agreement</h1>
+        {/* Premium summary bar — flat, sharp, no shadow */}
+        <section className="doc-pane mb-10 grid grid-cols-3 divide-x divide-slate-200">
+          <SummaryCell
+            label="Total Program"
+            value={formatMoney(contract.total_price)}
+          />
+          <SummaryCell
+            label="Due at Signing"
+            value={formatMoney(contract.amount_due_at_signing)}
+            accent
+          />
+          <SummaryCell
+            label="Structure"
+            value={contract.payment_structure}
+            small
+          />
+        </section>
+
+        {/* The legal document itself */}
+        <article className="doc-pane mb-10 px-6 py-10 sm:px-12 sm:py-14">
+          <header className="mb-10 border-b border-slate-300/80 pb-8">
+            <div className="doc-eyebrow-accent">StudyCore LLC</div>
+            <h2 className="doc-h1 mt-2">SAT Tutoring Services Agreement</h2>
+            <p className="mt-3 font-serif text-[14px] text-slate-600">
+              Effective {formatDate(contract.agreement_date)} between StudyCore LLC and{" "}
+              {contract.parent_name}, parent or legal guardian of {contract.student_name}.
+            </p>
+          </header>
+
+          <div className="space-y-9">
+            {clauses.map((clause) => (
+              <ClauseBlock key={clause.heading} clause={clause} />
+            ))}
           </div>
-          {clauses.map((clause) => (
-            <section key={clause.heading} className="mb-5">
-              <h2 className="mb-2 text-sm font-bold uppercase tracking-wider text-navy">
-                {clause.heading}
-              </h2>
-              {clause.paragraphs.map((p, i) => (
-                <p key={i} className="mb-2 whitespace-pre-line">
-                  {p}
-                </p>
-              ))}
-              {clause.bullets && (
-                <ul className="ml-5 list-disc space-y-1">
-                  {clause.bullets.map((b, i) => (
-                    <li key={i}>{b}</li>
-                  ))}
-                </ul>
-              )}
-            </section>
-          ))}
+
+          <footer className="mt-12 border-t border-slate-200 pt-6 font-serif text-[12px] leading-relaxed text-slate-500">
+            StudyCore LLC &nbsp;·&nbsp; San Ramon, California &nbsp;·&nbsp;{" "}
+            support@studycore.net &nbsp;·&nbsp; studycore.net
+          </footer>
         </article>
 
         <SignAndPay
@@ -270,7 +273,92 @@ export default async function SignPage({
           stripeClientSecret={clientSecret}
           initialError={redirectError}
         />
+
+        <p className="mt-10 text-center font-serif text-[12px] text-slate-500">
+          By submitting, you acknowledge electronic signature has the same legal
+          effect as a handwritten signature under the U.S. ESIGN Act.
+        </p>
       </div>
     </main>
+  );
+}
+
+function DocHeader() {
+  return (
+    <header className="doc-header">
+      <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-5">
+        <a href="https://studycore.net" className="flex items-center" aria-label="StudyCore">
+          <StudyCoreLogo height={22} />
+        </a>
+        <div className="hidden items-center gap-6 text-right sm:flex">
+          <div className="doc-eyebrow">Tutoring Services Agreement</div>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function SummaryCell({
+  label,
+  value,
+  accent,
+  small,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  small?: boolean;
+}) {
+  return (
+    <div className="px-5 py-5 sm:px-6 sm:py-6">
+      <div className="doc-meta-label">{label}</div>
+      <div
+        className={
+          (small
+            ? "mt-2 font-sans text-[14px] font-medium text-slate-800"
+            : "mt-2 font-sans text-[20px] font-semibold tracking-tight ") +
+          (accent ? " text-orange" : " text-navy")
+        }
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function ClauseBlock({
+  clause,
+}: {
+  clause: { heading: string; paragraphs: string[]; bullets?: string[] };
+}) {
+  // Heading shape is e.g. "1. PARTIES & PROGRAM DETAILS" — split it for the
+  // refined two-tone heading style.
+  const m = clause.heading.match(/^(\d+)\.\s*(.+)$/);
+  const num = m?.[1];
+  const title = m ? m[2] : clause.heading;
+  return (
+    <section>
+      <h3 className="mb-4 flex items-baseline">
+        {num && <span className="doc-section-num">{num.padStart(2, "0")}</span>}
+        <span className="doc-h2">{title}</span>
+      </h3>
+      <div className="doc-body space-y-3">
+        {clause.paragraphs.map((p, i) => (
+          <p key={i} className="whitespace-pre-line">
+            {p}
+          </p>
+        ))}
+        {clause.bullets && clause.bullets.length > 0 && (
+          <ul className="mt-2 space-y-2 pl-0">
+            {clause.bullets.map((b, i) => (
+              <li key={i} className="flex gap-3 text-slate-800">
+                <span aria-hidden className="mt-[10px] h-px w-3 flex-shrink-0 bg-orange" />
+                <span>{b}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
   );
 }

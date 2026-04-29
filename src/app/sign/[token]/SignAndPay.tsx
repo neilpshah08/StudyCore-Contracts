@@ -196,90 +196,112 @@ function InnerForm(props: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="card p-5">
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-navy">
-          Sign here
-        </h3>
-        <p className="mb-3 text-xs text-slate-500">
-          Use your finger or mouse to draw your signature as {props.parentName}.
-        </p>
-        <div
-          ref={wrapRef}
-          className="rounded-lg border border-dashed border-slate-300 bg-slate-50"
-        >
-          {mounted ? (
-            <SignatureCanvas
-              ref={(el) => {
-                sigRef.current = el;
-              }}
-              penColor="#0f172a"
-              onEnd={() => setHasSigned(true)}
-              canvasProps={{ className: "w-full h-[180px] rounded-lg" }}
-            />
-          ) : (
-            <div className="h-[180px] w-full" />
-          )}
-        </div>
-        <div className="mt-2 flex items-center justify-between text-xs">
-          <span className="text-slate-500">
-            By signing you confirm you are {props.parentName} and the legal guardian.
-          </span>
+      {/* Signature panel */}
+      <section className="border border-slate-300/80 bg-white">
+        <div className="flex items-baseline justify-between border-b border-slate-200 px-6 py-4">
+          <div>
+            <div className="doc-eyebrow-accent">17</div>
+            <h3 className="doc-h2 mt-1">Client Signature</h3>
+          </div>
           <button
             type="button"
             onClick={clearSignature}
-            className="text-navy/70 hover:text-navy"
+            className="doc-link-subtle"
           >
             Clear
           </button>
         </div>
-      </div>
+        <div className="px-6 pb-6 pt-5">
+          <p className="mb-4 font-serif text-[13px] text-slate-500">
+            Sign as <span className="font-semibold text-slate-700">{props.parentName}</span>{" "}
+            below. Use your finger or mouse to draw within the box.
+          </p>
+          <div
+            ref={wrapRef}
+            className="border border-slate-300 bg-[#fbfaf6]"
+          >
+            {mounted ? (
+              <SignatureCanvas
+                ref={(el) => {
+                  sigRef.current = el;
+                }}
+                penColor="#0f172a"
+                onEnd={() => setHasSigned(true)}
+                canvasProps={{ className: "w-full h-[180px]" }}
+              />
+            ) : (
+              <div className="h-[180px] w-full" />
+            )}
+          </div>
+          <div className="mt-3 flex items-baseline justify-between border-t border-dashed border-slate-300 pt-3">
+            <span className="font-serif text-[13px] italic text-slate-500">
+              {props.parentName}
+            </span>
+            <span className="font-mono text-[11px] uppercase tracking-wider text-slate-400">
+              Parent / Guardian
+            </span>
+          </div>
+        </div>
+      </section>
 
       {showPay && (
-        <div className="card p-5">
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-navy">
-            Payment due at signing
-          </h3>
-          <p className="mb-4 text-xs text-slate-500">
-            Securely processed by Stripe. You will be charged once you submit.
-          </p>
-          {props.stripeClientSecret ? (
-            <PaymentElement />
-          ) : (
-            <div className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
-              Payment is currently unavailable. Please try refreshing.
+        <section className="border border-slate-300/80 bg-white">
+          <div className="flex items-baseline justify-between border-b border-slate-200 px-6 py-4">
+            <div>
+              <div className="doc-eyebrow-accent">Payment</div>
+              <h3 className="doc-h2 mt-1">Due at Signing</h3>
             </div>
-          )}
-        </div>
+            <span className="font-sans text-[18px] font-semibold tracking-tight text-navy">
+              ${(props.amountDueCents / 100).toFixed(2)}
+            </span>
+          </div>
+          <div className="px-6 py-6">
+            {props.stripeClientSecret ? (
+              <PaymentElement />
+            ) : (
+              <div className="border border-amber-300 bg-amber-50 px-3 py-2 text-[13px] text-amber-800">
+                Payment is currently unavailable. Please refresh and try again.
+              </div>
+            )}
+            <p className="mt-4 font-serif text-[12px] text-slate-500">
+              Processed securely by Stripe. Your card is only charged once you submit.
+            </p>
+          </div>
+        </section>
       )}
 
-      <label className="flex items-start gap-2 text-sm text-slate-700">
-        <input
-          type="checkbox"
-          checked={agree}
-          onChange={(e) => setAgree(e.target.checked)}
-          className="mt-1 h-4 w-4 rounded border-slate-300 text-orange focus:ring-orange/40"
-        />
-        <span>
-          I have read and agree to the StudyCore SAT Tutoring Services Agreement above, and I
-          authorize StudyCore LLC to charge my payment method as described.
-        </span>
-      </label>
+      {/* Consent + submit */}
+      <section className="border border-slate-300/80 bg-white px-6 py-5">
+        <label className="flex items-start gap-3 font-serif text-[14px] leading-relaxed text-slate-700">
+          <input
+            type="checkbox"
+            checked={agree}
+            onChange={(e) => setAgree(e.target.checked)}
+            className="mt-[5px] h-4 w-4 flex-shrink-0 rounded-none border-slate-400 text-navy focus:ring-2 focus:ring-navy/30"
+          />
+          <span>
+            I have read and agree to the StudyCore SAT Tutoring Services Agreement above,
+            and I authorize StudyCore LLC to charge my payment method as described.
+          </span>
+        </label>
 
-      {error && (
-        <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>
-      )}
+        {error && (
+          <div className="mt-4 border-l-2 border-red-500 bg-red-50 px-4 py-3 font-serif text-[13px] text-red-800">
+            {error}
+          </div>
+        )}
 
-      <button
-        type="submit"
-        className="btn-primary w-full text-base"
-        disabled={submitting}
-      >
-        {submitting
-          ? "Processing…"
-          : showPay
-          ? `Sign & Pay`
-          : `Sign Agreement`}
-      </button>
+        <button type="submit" className="doc-btn-primary mt-5" disabled={submitting}>
+          {submitting
+            ? "Processing…"
+            : showPay
+            ? "Sign & Submit Payment"
+            : "Sign Agreement"}
+        </button>
+        <p className="mt-3 text-center font-mono text-[10px] uppercase tracking-[0.18em] text-slate-400">
+          Secured by Stripe &nbsp;·&nbsp; 256-bit SSL
+        </p>
+      </section>
     </form>
   );
 }
